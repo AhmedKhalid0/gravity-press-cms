@@ -23,7 +23,7 @@
 ### 1. Admin Control Center & Split-Screen Markdown Studio
 | Content Repository Inventory & Cloudflare Controls | Real-time AST Live Preview & Live SEO Gauge |
 | :---: | :---: |
-| ![Admin Dashboard](docs/assets/01_admin_dashboard.png) | ![Markdown Studio](docs/assets/02_markdown_studio.png) |
+| ![Admin Dashboard](docs/assets/05_published_dashboard.png) | ![Markdown Studio](docs/assets/02_markdown_studio.png) |
 
 ### 2. Interactive GraphQL IDE & Decoupled REST API
 | Strawberry GraphiQL Query Explorer (`/graphql`) | High-Throughput REST API (`/api/v1/content/`) |

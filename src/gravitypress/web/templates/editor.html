@@ -130,22 +130,22 @@
     <div class="metadata-form">
         <div class="form-group">
             <label>Article Title</label>
-            <input type="text" name="title" id="artTitle" class="form-input" value="{{ doc.metadata.title|default('Architecting Cloud-Native Microservices with Python 3.14') }}" required oninput="updatePreview()">
+            <input type="text" name="title" id="artTitle" class="form-input" value="{% if doc %}{{ doc.metadata.title }}{% else %}Architecting Cloud-Native Microservices with Python 3.14{% endif %}" required oninput="updatePreview()">
         </div>
 
         <div class="form-group">
             <label>URL Slug</label>
-            <input type="text" name="slug" id="artSlug" class="form-input" value="{{ doc.metadata.slug|default('cloud-native-microservices-python-314') }}" required>
+            <input type="text" name="slug" id="artSlug" class="form-input" value="{% if doc %}{{ doc.metadata.slug }}{% else %}cloud-native-microservices-python-314{% endif %}" required>
         </div>
 
         <div class="form-group">
             <label>Category</label>
-            <input type="text" name="category" id="artCat" class="form-input" value="{{ doc.metadata.category|default('Engineering') }}">
+            <input type="text" name="category" id="artCat" class="form-input" value="{% if doc %}{{ doc.metadata.category }}{% else %}Engineering{% endif %}">
         </div>
 
         <div class="form-group" style="grid-column: span 2;">
             <label>Tags (Comma-separated)</label>
-            <input type="text" name="tags" class="form-input" value="{{ doc.metadata.tags|join(', ')|default('Python, Microservices, Cloudflare, Architecture') }}">
+            <input type="text" name="tags" class="form-input" value="{% if doc %}{{ doc.metadata.tags|join(', ') }}{% else %}Python, Microservices, Cloudflare, Architecture{% endif %}">
         </div>
 
         <div class="form-group">
@@ -165,7 +165,7 @@
                 <span class="pane-title">📝 Markdown Source</span>
                 <span id="wordStats" style="font-size: 11px; color: var(--text-dim);">0 words • 1 min read</span>
             </div>
-            <textarea name="markdown_content" id="mdInput" class="markdown-textarea" placeholder="Type your markdown content here..." oninput="updatePreview()">{{ doc.raw_markdown|default(initial_markdown) }}</textarea>
+            <textarea name="markdown_content" id="mdInput" class="markdown-textarea" placeholder="Type your markdown content here..." oninput="updatePreview()">{% if doc %}{{ doc.raw_markdown }}{% else %}{{ initial_markdown }}{% endif %}</textarea>
             <div class="seo-bar">
                 <span>Git Tracking: <strong class="text-emerald">Active</strong></span>
                 <span>Format: <strong>CommonMark / MDX</strong></span>
