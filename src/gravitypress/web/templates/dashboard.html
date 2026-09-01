@@ -1,0 +1,197 @@
+{% extends "base_admin.html" %}
+
+{% block extra_css %}
+<style>
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 18px;
+        margin-bottom: 24px;
+    }
+    .kpi-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+    .kpi-label { font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+    .kpi-val { font-size: 32px; font-weight: 800; line-height: 1; }
+    .kpi-desc { font-size: 12px; color: var(--text-dim); }
+
+    /* Cloudflare Deploy Hero Banner */
+    .deploy-banner {
+        background: linear-gradient(135deg, rgba(245, 130, 32, 0.12), rgba(99, 102, 241, 0.12));
+        border: 1px solid rgba(245, 130, 32, 0.3);
+        border-radius: 12px;
+        padding: 20px 24px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 28px;
+    }
+    .deploy-info h3 { font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+    .deploy-info p { font-size: 13px; color: var(--text-muted); }
+
+    /* Workspace 2-col */
+    .dash-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 24px;
+    }
+
+    .panel-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .panel-header { display: flex; justify-content: space-between; align-items: center; }
+    .panel-header h3 { font-size: 16px; font-weight: 700; }
+
+    /* Table */
+    .content-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .content-table th { background: rgba(0, 0, 0, 0.3); padding: 10px 14px; text-align: left; color: var(--text-muted); font-weight: 600; border-bottom: 1px solid var(--border-color); }
+    .content-table td { padding: 12px 14px; border-bottom: 1px solid rgba(255, 255, 255, 0.04); vertical-align: middle; }
+    .art-link { font-weight: 700; color: #fff; display: block; margin-bottom: 2px; }
+    .art-link:hover { color: var(--accent-cyan); }
+    .art-slug { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-dim); }
+
+    /* Commit Log */
+    .commit-feed { display: flex; flex-direction: column; gap: 12px; }
+    .commit-item { display: flex; gap: 12px; align-items: flex-start; padding: 10px; background: rgba(0, 0, 0, 0.2); border-radius: 8px; border-left: 3px solid var(--accent-indigo); }
+    .commit-hash { font-family: 'JetBrains Mono', monospace; font-size: 11px; background: rgba(255, 255, 255, 0.08); padding: 2px 6px; border-radius: 4px; color: var(--accent-cyan); }
+    .commit-msg { font-size: 12px; font-weight: 600; color: var(--text-primary); margin-bottom: 2px; }
+    .commit-author { font-size: 11px; color: var(--text-dim); }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- KPI Cards -->
+<div class="kpi-grid">
+    <div class="kpi-card">
+        <span class="kpi-label">Published Articles</span>
+        <span class="kpi-val" style="color: var(--accent-emerald);">{{ total_articles }}</span>
+        <span class="kpi-desc">Markdown/MDX files on disk</span>
+    </div>
+
+    <div class="kpi-card">
+        <span class="kpi-label">Total Word Count</span>
+        <span class="kpi-val" style="color: var(--accent-cyan);">{{ total_words }}</span>
+        <span class="kpi-desc">Calculated across repository</span>
+    </div>
+
+    <div class="kpi-card">
+        <span class="kpi-label">Categories</span>
+        <span class="kpi-val" style="color: var(--accent-indigo);">{{ categories|length }}</span>
+        <span class="kpi-desc">Dynamic taxonomy</span>
+    </div>
+
+    <div class="kpi-card">
+        <span class="kpi-label">Git Commits</span>
+        <span class="kpi-val" style="color: #f58220;">{{ recent_commits|length }}</span>
+        <span class="kpi-desc">Revision history</span>
+    </div>
+</div>
+
+<!-- Cloudflare Pages Edge Banner -->
+<div class="deploy-banner">
+    <div class="deploy-info">
+        <h3>⚡ Cloudflare Pages Edge Deployment</h3>
+        <p>Compile static HTML, sitemap, and RSS feed to <code>dist/</code> and deploy globally to 300+ edge data centers.</p>
+    </div>
+    <form action="/api/v1/deploy/cloudflare" method="POST" target="_blank">
+        <button type="submit" class="btn btn-emerald">
+            <span>🚀 Build & Deploy to Cloudflare</span>
+        </button>
+    </form>
+</div>
+
+<!-- Content Grid -->
+<div class="dash-grid">
+    <!-- Left: Content Repository -->
+    <div class="panel-card">
+        <div class="panel-header">
+            <h3>Content Repository Inventory</h3>
+            <a href="/admin/editor/" class="btn btn-primary btn-xs">+ New Article</a>
+        </div>
+
+        <div style="overflow-x: auto;">
+            <table class="content-table">
+                <thead>
+                    <tr>
+                        <th>Title & Slug</th>
+                        <th>Category</th>
+                        <th>Stats</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for art in articles %}
+                    <tr>
+                        <td>
+                            <a href="/admin/editor/{{ art.metadata.slug }}" class="art-link">{{ art.metadata.title }}</a>
+                            <span class="art-slug">{{ art.metadata.slug }}.md</span>
+                        </td>
+                        <td><span class="badge badge-published" style="background: rgba(99, 102, 241, 0.15); color: var(--accent-cyan); border-color: rgba(99, 102, 241, 0.3);">{{ art.metadata.category }}</span></td>
+                        <td style="color: var(--text-dim); font-size: 11px;">
+                            {{ art.word_count }}w • {{ art.reading_time_minutes }}m read
+                        </td>
+                        <td style="color: var(--text-muted);">{{ art.metadata.date }}</td>
+                        <td>
+                            {% if art.metadata.status == 'PUBLISHED' %}
+                            <span class="badge badge-published">Published</span>
+                            {% else %}
+                            <span class="badge badge-draft">Draft</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="/admin/editor/{{ art.metadata.slug }}" class="btn btn-outline btn-xs">Edit ✏️</a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" style="text-align: center; color: var(--text-dim); padding: 30px;">
+                            No articles found in <code>content/articles/</code>. Click "+ New Article" to write your first markdown post.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Right: Git Versioning History -->
+    <div class="panel-card">
+        <div class="panel-header">
+            <h3>Git Revision Log</h3>
+            <span class="badge badge-published">Atomic Commits</span>
+        </div>
+
+        <div class="commit-feed">
+            {% for c in recent_commits %}
+            <div class="commit-item">
+                <span class="commit-hash">{{ c.hash }}</span>
+                <div style="flex: 1;">
+                    <p class="commit-msg">{{ c.message }}</p>
+                    <span class="commit-author">By {{ c.author }} • {{ c.date }}</span>
+                </div>
+            </div>
+            {% else %}
+            <div style="text-align: center; color: var(--text-dim); padding: 20px;">
+                <p>Git tracking initialized.</p>
+                <p style="font-size: 11px; margin-top: 4px;">Edits in the editor will create atomic Git commits automatically.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

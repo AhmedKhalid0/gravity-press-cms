@@ -1,0 +1,249 @@
+{% extends "base_admin.html" %}
+
+{% block extra_css %}
+<style>
+    .editor-layout {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        height: calc(100vh - 140px);
+    }
+
+    .editor-pane {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .pane-toolbar {
+        background: rgba(0, 0, 0, 0.4);
+        border-bottom: 1px solid var(--border-color);
+        padding: 12px 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .pane-title { font-size: 13px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 8px; }
+
+    /* Metadata Bar */
+    .metadata-form {
+        padding: 14px 16px;
+        background: rgba(0, 0, 0, 0.2);
+        border-bottom: 1px solid var(--border-color);
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr;
+        gap: 10px;
+    }
+
+    .form-group { display: flex; flex-direction: column; gap: 4px; }
+    .form-group label { font-size: 11px; font-weight: 600; color: var(--text-muted); }
+    .form-input {
+        background: #080c16;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        padding: 6px 10px;
+        color: #fff;
+        font-family: inherit;
+        font-size: 12px;
+    }
+    .form-input:focus { outline: none; border-color: var(--accent-indigo); }
+
+    /* Markdown Textarea */
+    .markdown-textarea {
+        flex: 1;
+        background: #080c16;
+        color: #e2e8f0;
+        border: none;
+        padding: 16px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 13px;
+        line-height: 1.6;
+        resize: none;
+        outline: none;
+    }
+
+    /* Preview Container */
+    .preview-body {
+        flex: 1;
+        padding: 24px;
+        overflow-y: auto;
+        background: var(--bg-surface);
+    }
+
+    .preview-header {
+        margin-bottom: 20px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid var(--border-color);
+    }
+    .preview-title { font-size: 26px; font-weight: 800; line-height: 1.25; margin-bottom: 8px; }
+    .preview-meta { font-size: 12px; color: var(--accent-cyan); font-weight: 600; display: flex; gap: 8px; }
+
+    /* Prose Styling */
+    .preview-content h1, .preview-content h2 { font-size: 20px; font-weight: 700; margin: 24px 0 12px; color: #fff; border-bottom: 1px solid rgba(255, 255, 255, 0.05); padding-bottom: 6px; }
+    .preview-content h3 { font-size: 16px; font-weight: 600; margin: 18px 0 8px; color: #cbd5e1; }
+    .preview-content p { margin-bottom: 14px; font-size: 14px; color: #cbd5e1; line-height: 1.7; }
+    .preview-content pre { background: #070a13; border: 1px solid var(--border-color); padding: 12px; border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 12px; margin: 16px 0; overflow-x: auto; color: var(--accent-cyan); }
+    .preview-content code { background: rgba(255, 255, 255, 0.08); padding: 2px 4px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+    .preview-content ul, .preview-content ol { margin: 0 0 16px 20px; font-size: 14px; color: #cbd5e1; }
+    .preview-content li { margin-bottom: 4px; }
+
+    /* SEO Gauge */
+    .seo-bar {
+        background: rgba(0, 0, 0, 0.3);
+        border-top: 1px solid var(--border-color);
+        padding: 10px 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12px;
+    }
+    .seo-pill { display: flex; align-items: center; gap: 6px; font-weight: 700; }
+</style>
+<!-- Marked.js for fast client-side markdown live preview -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<form action="/admin/editor/save" method="POST" id="editorForm">
+    <!-- Top Actions Toolbar -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <div>
+            <h1 style="font-size: 20px; font-weight: 800;">Split-Screen Markdown / MDX Visual Studio</h1>
+            <p style="font-size: 12px; color: var(--text-muted);">Real-time AST rendering, live SEO score gauge, and Cloudflare Pages sync</p>
+        </div>
+
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <label style="font-size: 12px; display: flex; align-items: center; gap: 6px; cursor: pointer; color: var(--text-muted);">
+                <input type="checkbox" name="deploy_cloudflare" value="1" checked>
+                Deploy to Cloudflare Pages on Save
+            </label>
+            <a href="/admin/" class="btn btn-outline btn-xs">Cancel</a>
+            <button type="submit" class="btn btn-emerald">💾 Save & Commit to Git</button>
+        </div>
+    </div>
+
+    <!-- Metadata Attributes Bar -->
+    <div class="metadata-form">
+        <div class="form-group">
+            <label>Article Title</label>
+            <input type="text" name="title" id="artTitle" class="form-input" value="{{ doc.metadata.title|default('Architecting Cloud-Native Microservices with Python 3.14') }}" required oninput="updatePreview()">
+        </div>
+
+        <div class="form-group">
+            <label>URL Slug</label>
+            <input type="text" name="slug" id="artSlug" class="form-input" value="{{ doc.metadata.slug|default('cloud-native-microservices-python-314') }}" required>
+        </div>
+
+        <div class="form-group">
+            <label>Category</label>
+            <input type="text" name="category" id="artCat" class="form-input" value="{{ doc.metadata.category|default('Engineering') }}">
+        </div>
+
+        <div class="form-group" style="grid-column: span 2;">
+            <label>Tags (Comma-separated)</label>
+            <input type="text" name="tags" class="form-input" value="{{ doc.metadata.tags|join(', ')|default('Python, Microservices, Cloudflare, Architecture') }}">
+        </div>
+
+        <div class="form-group">
+            <label>Publication Status</label>
+            <select name="status" class="form-input">
+                <option value="PUBLISHED" {% if not doc or doc.metadata.status == 'PUBLISHED' %}selected{% endif %}>PUBLISHED</option>
+                <option value="DRAFT" {% if doc and doc.metadata.status == 'DRAFT' %}selected{% endif %}>DRAFT</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Split-Screen Editor & Live Preview -->
+    <div class="editor-layout" style="margin-top: 16px;">
+        <!-- Left: Raw Markdown Editor -->
+        <div class="editor-pane">
+            <div class="pane-toolbar">
+                <span class="pane-title">📝 Markdown Source</span>
+                <span id="wordStats" style="font-size: 11px; color: var(--text-dim);">0 words • 1 min read</span>
+            </div>
+            <textarea name="markdown_content" id="mdInput" class="markdown-textarea" placeholder="Type your markdown content here..." oninput="updatePreview()">{{ doc.raw_markdown|default(initial_markdown) }}</textarea>
+            <div class="seo-bar">
+                <span>Git Tracking: <strong class="text-emerald">Active</strong></span>
+                <span>Format: <strong>CommonMark / MDX</strong></span>
+            </div>
+        </div>
+
+        <!-- Right: Real-time Rendered Live Preview -->
+        <div class="editor-pane">
+            <div class="pane-toolbar">
+                <span class="pane-title">⚡ Live HTML Preview</span>
+                <span class="badge badge-published">Edge Rendered</span>
+            </div>
+            <div class="preview-body" id="previewBody">
+                <div class="preview-header">
+                    <div class="preview-meta">
+                        <span id="prevCat">Engineering</span>
+                        <span>•</span>
+                        <span id="prevReadTime">2 min read</span>
+                    </div>
+                    <h1 class="preview-title" id="prevTitle">Article Title</h1>
+                </div>
+                <div class="preview-content" id="prevContent"></div>
+            </div>
+            <div class="seo-bar">
+                <div class="seo-pill">
+                    <span>SEO Score:</span>
+                    <span id="seoScoreBadge" class="badge badge-published">95 / 100 (Excellent)</span>
+                </div>
+                <span style="color: var(--text-dim); font-size: 11px;">Title & Meta Optimized</span>
+            </div>
+        </div>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function updatePreview() {
+    const title = document.getElementById('artTitle').value;
+    const cat = document.getElementById('artCat').value;
+    const rawMd = document.getElementById('mdInput').value;
+
+    document.getElementById('prevTitle').innerText = title || 'Untitled Article';
+    document.getElementById('prevCat').innerText = cat || 'General';
+
+    // Strip frontmatter if user pasted raw YAML in textarea
+    let cleanMd = rawMd;
+    if (cleanMd.startsWith('---')) {
+        const parts = cleanMd.split('---');
+        if (parts.length >= 3) {
+            cleanMd = parts.slice(2).join('---');
+        }
+    }
+
+    // Convert markdown to HTML via marked.js
+    if (window.marked) {
+        document.getElementById('prevContent').innerHTML = marked.parse(cleanMd);
+    }
+
+    // Calculate words & reading time
+    const words = cleanMd.trim().split(/\s+/).filter(w => w.length > 0).length;
+    const readMin = Math.max(1, Math.ceil(words / 200));
+    document.getElementById('wordStats').innerText = `${words} words • ${readMin} min read`;
+    document.getElementById('prevReadTime').innerText = `${readMin} min read`;
+
+    // Real-time SEO score calculation
+    let score = 100;
+    if (title.length < 30) score -= 20;
+    if (words < 200) score -= 25;
+    if (!cleanMd.includes('##')) score -= 15;
+    score = Math.max(40, score);
+
+    const badge = document.getElementById('seoScoreBadge');
+    badge.innerText = `${score} / 100 (${score >= 85 ? 'Excellent' : 'Good'})`;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    updatePreview();
+});
+</script>
+{% endblock %}

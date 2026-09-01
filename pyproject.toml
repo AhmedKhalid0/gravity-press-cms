@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gravitypress"
+version = "1.0.0"
+description = "High-Performance Headless Git-Based CMS & Static Publishing Engine with GraphQL and Free Cloudflare Pages Edge Deployment"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+    { name = "Ahmed Khaled (Ahmed Algendy)", email = "contact@ahmedalgendy.com" }
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content :: Content Management System",
+]
+dependencies = [
+    "fastapi>=0.110.0",
+    "uvicorn>=0.28.0",
+    "pydantic>=2.6.0",
+    "strawberry-graphql>=0.220.0",
+    "jinja2>=3.1.3",
+    "pyyaml>=6.0.1",
+    "markdown>=3.5.2",
+    "pygments>=2.17.2",
+    "typer>=0.9.0",
+    "rich>=13.7.0",
+    "httpx>=0.27.0",
+    "python-multipart>=0.0.9",
+]
+
+[project.scripts]
+gravitypress = "gravitypress.cli.main:app"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
